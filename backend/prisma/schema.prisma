@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String       @id @default(uuid())
+  email         String       @unique
+  password      String
+  name          String
+  avatar        String?
+  plan          Plan         @default(FREE)
+  storageUsed   BigInt       @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  recordings    Recording[]
+  projects      Project[]
+  apiKeys       ApiKey[]
+}
+
+model Project {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  hackathon   String?
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  recordings  Recording[]
+}
+
+model Recording {
+  id            String          @id @default(uuid())
+  title         String
+  description   String?
+  duration      Int             @default(0)
+  fileSize      BigInt          @default(0)
+  status        RecordingStatus @default(PROCESSING)
+  videoUrl      String?
+  thumbnailUrl  String?
+  isPublic      Boolean         @default(false)
+  shareToken    String?         @unique
+  views         Int             @default(0)
+  
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId     String?
+  project       Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  
+  annotations   Annotation[]
+}
+
+model Annotation {
+  id          String    @id @default(uuid())
+  timestamp   Int       // seconds into video
+  text        String
+  type        String    @default("note")
+  recordingId String
+  recording   Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+}
+
+model ApiKey {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsed  DateTime?
+  createdAt DateTime @default(now())
+}
+
+enum Plan {
+  FREE
+  PRO
+  TEAM
+}
+
+enum RecordingStatus {
+  PROCESSING
+  READY
+  FAILED
+}
